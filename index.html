@@ -2,195 +2,192 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <title>🆘 CỨU HỘ MIỀN TRUNG</title>
+  <title>🆘 CỨU HỘ MIỀN TRUNG — BẢN ĐỒ CỘNG ĐỒNG</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <style>
+    /* ---------- THEME ---------- */
     :root{
-      --accent:#e33;
-      --bg:#f5f7fb;
-      --card:#fff;
-      --muted:#666;
-      --success:#28a745;
-      --warning:#ffbf00;
-      --danger:#d32f2f;
-      --green:#2ecc71;
-      --yellow:#f1c40f;
-      --red:#e74c3c;
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#0069c7;
+      --accent-2:#0ea5a6;
+      --danger:#ef4444;
+      --radius:12px;
+      --glass: rgba(255,255,255,0.8);
+      --shadow: 0 6px 20px rgba(17,24,39,0.08);
+      --max-width:1100px;
+      --container-pad:14px;
     }
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);}
-    header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:linear-gradient(90deg,#0aa,#077);color:#fff}
-    header h1{font-size:18px;margin:0;display:flex;gap:10px;align-items:center}
-    header .controls{display:flex;gap:8px;align-items:center}
-    button, input[type=button], input[type=submit]{cursor:pointer}
-    .container{display:grid;grid-template-columns:350px 1fr;gap:12px;padding:12px;height:calc(100% - 64px);}
-    /* left column */
-    .left{display:flex;flex-direction:column;gap:12px}
-    .card{background:var(--card);border-radius:10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:auto}
+    *{box-sizing:border-box}
+    html,body,#app{height:100%;margin:0;font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:var(--bg);color:#111}
+    header{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:linear-gradient(90deg,#0077b6,#00b4d8);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.08)}
+    header h1{font-size:17px;margin:0;display:flex;gap:10px;align-items:center}
+    header .controls{display:flex;align-items:center;gap:8px}
+    header .controls .btn{padding:8px 10px;border-radius:8px;border:0;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer}
+    .wrap{max-width:var(--max-width);margin:18px auto;padding:var(--container-pad);display:grid;grid-template-columns:360px 1fr;gap:16px}
+    .panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;overflow:auto}
+    .left{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 120px)}
+    .right{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 120px)}
+    /* map */
+    #map{height:55vh;border-radius:10px;overflow:hidden}
+    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{background:var(--accent);color:#fff;border-radius:8px;padding:8px 10px;border:0;cursor:pointer}
+    .btn.secondary{background:#eef2ff;color:var(--accent)}
+    .btn.danger{background:var(--danger)}
     .small{font-size:13px;color:var(--muted)}
-    .auth form{display:flex;flex-direction:column;gap:8px}
-    .auth input, .auth select, .auth textarea{padding:8px;border-radius:6px;border:1px solid #ddd;font-size:14px}
-    .btn{background:var(--accent);color:#fff;padding:8px 10px;border-radius:8px;border:0}
-    .btn--ghost{background:transparent;border:1px solid #ddd;color:#222}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    .map-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between}
-    /* right column (map + feed) */
-    .right{display:flex;flex-direction:column;gap:12px;height:100%}
-    #map{height:56vh;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
-    .feed{overflow:auto;padding:8px;height:calc(44vh - 40px)}
-    .post{display:flex;gap:10px;padding:10px;border-radius:8px;border:1px solid #eee;margin-bottom:10px;background:#fff}
-    .post .media{width:110px;height:80px;border-radius:6px;background:#f0f0f0;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    .post .meta{flex:1}
-    .post h4{margin:0 0 6px 0}
-    .tags{display:flex;gap:6px;margin-top:6px}
-    .tag{padding:4px 6px;border-radius:6px;font-size:12px}
-    .tag.green{background:rgba(46,204,113,0.12);color:var(--green)}
-    .tag.yellow{background:rgba(241,196,15,0.12);color:var(--yellow)}
-    .tag.red{background:rgba(231,76,60,0.12);color:var(--red)}
-    .post .footer{display:flex;gap:6px;align-items:center;margin-top:8px}
-    .icon-btn{border:0;background:transparent;cursor:pointer;padding:6px;border-radius:6px}
-    .modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:999}
-    .modal .dialog{width:95%;max-width:760px;background:#fff;padding:12px;border-radius:8px;max-height:90vh;overflow:auto}
-    .comment{border-top:1px dashed #eee;padding:8px 0;display:flex;gap:8px}
-    .meta small{color:#999}
-    .sos{background:linear-gradient(90deg,#ff6b6b,#ff4757);color:#fff;padding:8px;border-radius:8px}
-    .admin-badge{background:#111;color:#fff;padding:4px 6px;border-radius:6px;font-size:12px}
-    /* responsive */
-    @media (max-width:900px){
-      .container{grid-template-columns:1fr;grid-auto-rows:auto;height:auto}
-      #map{height:50vh}
-      .feed{height:40vh}
+    form{display:flex;flex-direction:column;gap:8px}
+    input[type="text"], input[type="email"], input[type="password"], textarea, select{
+      padding:10px;border-radius:8px;border:1px solid #e6e9ef;font-size:14px
     }
+    textarea{min-height:80px}
+    .feed{overflow:auto;padding:8px;height:calc(45vh - 20px)}
+    .post{display:flex;gap:10px;padding:10px;border-radius:10px;border:1px solid #f0f2f5;background:#fff}
+    .media{width:110px;height:80px;border-radius:8px;background:#f6f7fb;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .meta h4{margin:0;font-size:15px}
+    .meta p{margin:6px 0;color:var(--muted);font-size:14px}
+    .tags{display:flex;gap:6px;margin-top:6px}
+    .tag{padding:6px 8px;border-radius:999px;font-size:12px;background:#f0f5ff;color:var(--accent)}
+    .tag.green{background:rgba(46,204,113,0.12);color:#16a34a}
+    .tag.yellow{background:rgba(245,158,11,0.12);color:#b45309}
+    .tag.red{background:rgba(239,68,68,0.12);color:#b91c1c}
+    .footer{display:flex;gap:8px;align-items:center;margin-top:8px}
+    .icon{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;border:1px solid #eef2f6;background:#fff;cursor:pointer}
+    .search{display:flex;gap:8px;align-items:center}
+    .map-legend{display:flex;gap:6px;align-items:center}
+    .legend-item{display:flex;gap:6px;align-items:center;font-size:13px}
+    .dot{width:12px;height:12px;border-radius:50%}
+    /* modal */
+    .modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(3,7,18,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;display:none}
+    .dialog{width:95%;max-width:960px;background:#fff;border-radius:12px;padding:12px;max-height:90vh;overflow:auto}
+    .row{display:flex;gap:8px}
+    .center{display:flex;align-items:center;justify-content:center}
+    footer.small{font-size:13px;color:var(--muted);text-align:center;margin-top:8px;padding:8px}
+    /* responsive */
+    @media (max-width:980px){ .wrap{grid-template-columns:1fr} #map{height:48vh} .left{height:auto} .right{height:auto} }
   </style>
 </head>
 <body>
   <header>
-    <h1>🆘 CỨU HỘ MIỀN TRUNG</h1>
+    <h1>🆘 CỨU HỘ MIỀN TRUNG — BẢN ĐỒ CỘNG ĐỒNG</h1>
     <div class="controls">
       <div id="userBox" class="small">Chưa đăng nhập</div>
-      <button id="btn-sos" class="sos">GỬI SOS</button>
-      <button id="btn-logout" class="btn btn--ghost" style="display:none">Đăng xuất</button>
+      <button id="btn-sos" class="btn" title="Gửi SOS">📣 SOS</button>
+      <button id="btn-logout" class="btn secondary" style="display:none">Đăng xuất</button>
     </div>
   </header>
 
-  <div class="container">
+  <div id="app" class="wrap">
+    <!-- LEFT: auth + post -->
     <div class="left">
-      <div class="card auth" id="authCard">
-        <div id="authForms">
-          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <strong>Đăng ký / Đăng nhập</strong>
-            <small class="small">Dùng email</small>
+      <div class="panel">
+        <strong>Đăng nhập / Đăng ký</strong>
+        <div class="small">Dùng email để quản lý bài đăng</div>
+        <form id="form-auth">
+          <input id="auth-email" type="email" placeholder="Email" required />
+          <input id="auth-password" type="password" placeholder="Mật khẩu" required />
+          <div style="display:flex;gap:8px">
+            <button id="btn-login" class="btn" type="submit">Đăng nhập</button>
+            <button id="btn-register" class="btn secondary" type="button">Đăng ký</button>
           </div>
-          <form id="form-login">
-            <input id="email" type="email" placeholder="Email" required />
-            <input id="password" type="password" placeholder="Mật khẩu" required />
-            <div style="display:flex;gap:8px">
-              <button type="submit" class="btn">Đăng nhập</button>
-              <button type="button" id="btn-register" class="btn btn--ghost">Đăng ký</button>
-            </div>
-            <div style="margin-top:8px" class="small">Admin mặc định: <b>admin@gmail.com</b></div>
-          </form>
-        </div>
+          <div class="small" style="margin-top:6px">Admin mặc định: <b>admin@gmail.com</b></div>
+        </form>
       </div>
 
-      <div class="card" id="postCard">
-        <strong>Đăng bài báo ngập</strong>
-        <div class="small">Chọn điểm trên bản đồ hoặc dùng vị trí của bạn</div>
-        <form id="form-post" style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-          <input id="title" placeholder="Tiêu đề (ví dụ: Ngập ở cầu X)" required />
-          <textarea id="desc" placeholder="Mô tả chi tiết... (có hướng an toàn nếu biết)" rows="3"></textarea>
+      <div class="panel">
+        <strong>Đăng cảnh báo</strong>
+        <div class="small">Chọn điểm trên bản đồ hoặc dùng GPS</div>
+        <form id="form-post">
+          <input id="post-title" type="text" placeholder="Tiêu đề (ví dụ: Ngập trước cổng chợ X)" required />
+          <textarea id="post-desc" placeholder="Mô tả, hướng an toàn, tin tức"></textarea>
           <div style="display:flex;gap:8px">
-            <select id="severity">
+            <select id="post-severity">
               <option value="green">Ngập nhẹ</option>
               <option value="yellow">Ngập trung bình</option>
               <option value="red">Ngập nặng</option>
             </select>
-            <select id="type">
-              <option value="marker">Đánh dấu điểm</option>
-              <option value="area">Khoanh vùng (2 lần click)</option>
+            <select id="post-type">
+              <option value="marker">Chấm điểm</option>
+              <option value="area">Khoanh vùng</option>
             </select>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <input id="file" type="file" accept="image/*,video/*" />
-            <button type="button" id="btn-getloc" class="btn btn--ghost">Lấy vị trí</button>
-            <div id="posDisplay" class="small">Vị trí: chưa chọn</div>
+            <input id="post-file" type="file" accept="image/*,video/*" />
+            <button id="btn-getloc" type="button" class="btn secondary">Lấy vị trí</button>
+            <div id="posDisplay" class="small">Vị trí: chưa</div>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn" type="submit">Đăng bài</button>
-            <button type="button" id="btn-clear" class="btn btn--ghost">Xóa</button>
+            <button class="btn" type="submit">Đăng</button>
+            <button id="btn-clear" type="button" class="btn secondary">Xóa</button>
           </div>
-          <div class="small">Ghi chú: Với <b>area</b>, click 2 lần trên bản đồ để tạo vùng. Vùng sẽ được tô màu theo mức độ.</div>
+          <div class="small">Trong chế độ <b>Khoanh vùng</b>, click 2 lần trên bản đồ để tạo vùng.</div>
         </form>
       </div>
 
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <strong>Điều khiển bản đồ</strong>
-          <small class="small">Toggle</small>
+      <div class="panel">
+        <strong>Bảng điều khiển</strong>
+        <div class="small">Điều khiển bản đồ & bộ lọc</div>
+        <div class="toolbar" style="margin-top:8px">
+          <button id="btn-center" class="btn secondary">Tập trung vị trí</button>
+          <button id="btn-toggle-areas" class="btn secondary">Ẩn/Hiện vùng</button>
+          <button id="btn-refresh" class="btn secondary">Làm mới</button>
         </div>
-        <div style="margin-top:8px" class="map-toolbar">
-          <div class="actions">
-            <button id="btn-locate" class="btn btn--ghost">Từ GPS</button>
-            <button id="btn-toggle-areas" class="btn btn--ghost">Ẩn/Hiện vùng</button>
-            <button id="btn-refresh" class="btn btn--ghost">Tải lại</button>
-          </div>
+        <div style="margin-top:10px" class="map-legend">
+          <div class="legend-item"><div class="dot" style="background:#2ecc71"></div><span class="small">Ngập nhẹ</span></div>
+          <div class="legend-item"><div class="dot" style="background:#f1c40f"></div><span class="small">Ngập TB</span></div>
+          <div class="legend-item"><div class="dot" style="background:#e74c3c"></div><span class="small">Ngập nặng</span></div>
         </div>
       </div>
 
-      <div class="card small">
-        <strong>Hướng dẫn nhanh</strong>
+      <div class="panel small">
+        <strong>Ghi chú</strong>
         <ul>
-          <li>Đăng ký/Đăng nhập bằng email.</li>
-          <li>Chọn vị trí bằng click trên bản đồ hoặc nút "Lấy vị trí".</li>
-          <li>Đăng ảnh/video kèm mô tả. Mức độ: xanh/vàng/đỏ.</li>
-          <li>Admin (<b>admin@gmail.com</b>) có quyền xóa bài.</li>
+          <li>Đăng nhập để đăng bài và bình luận.</li>
+          <li>Admin (admin@gmail.com) có quyền xóa bài.</li>
+          <li>SOS sẽ tạo cảnh báo đỏ, admin sẽ thấy trong collection "sos".</li>
         </ul>
       </div>
     </div>
 
+    <!-- RIGHT: map + feed -->
     <div class="right">
-      <div id="map" class="card"></div>
-      <div class="card feed" id="feed">
+      <div class="panel" id="map-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Bản đồ</strong> <span class="small">(OpenStreetMap + Leaflet)</span></div>
+          <div class="search">
+            <input id="searchBox" type="text" placeholder="Tìm theo địa điểm / tiêu đề..." style="padding:8px;border-radius:8px;border:1px solid #e6e9ef" />
+            <button id="btn-search" class="btn secondary">Tìm</button>
+          </div>
+        </div>
+        <div id="map" style="margin-top:10px"></div>
+      </div>
+
+      <div class="panel feed">
         <strong>Danh sách cảnh báo</strong>
         <div id="postsList" style="margin-top:10px"></div>
       </div>
     </div>
   </div>
 
-  <!-- modal chi tiết bài -->
-  <div id="modal" class="modal" style="display:none">
+  <!-- Modal Chi tiết -->
+  <div id="modal" class="modal">
     <div class="dialog">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <strong id="modalTitle">Chi tiết</strong>
         <div>
-          <button id="modal-close" class="btn btn--ghost">Đóng</button>
+          <button id="modal-close" class="btn secondary">Đóng</button>
         </div>
       </div>
-      <div id="modalBody" style="margin-top:8px"></div>
+      <div id="modalBody" style="margin-top:10px"></div>
     </div>
   </div>
 
-  <!-- SCRIPTS -->
+  <!-- Firebase + Leaflet + MarkerCluster + libs -->
   <script type="module">
-  /*************************************************************************
-   * Cứu hộ miền trung - Single-file frontend with Firebase + Leaflet
-   * Features:
-   *  - Firebase Auth (email/password)
-   *  - Firestore posts: { title, desc, lat, lng, severity, type, mediaUrl, uid, author, createdAt }
-   *  - Storage for media
-   *  - Real-time updates (onSnapshot)
-   *  - Comments as subcollection "comments"
-   *  - Likes simple toggle stored in likes: [uid]
-   *  - Admin (admin@gmail.com) can delete posts
-   *  - SOS creates post severity=red + separate 'sos' collection for admin monitoring
-   *  - Map markers + polygon (rectangle) drawing via two clicks
-   *
-   * Notes:
-   *  - Replace firebaseConfig below with your config (you already provided)
-   *  - For production: secure Firestore rules to allow only auth writes and admin deletes, etc.
-   *************************************************************************/
-
-  // Firebase config (use what user provided)
+  /********** CẤU HÌNH FIREBASE (dùng config em cung cấp) **********/
   const firebaseConfig = {
     apiKey: "AIzaSyD6DNuThRLY6NsSqlhX71j5zHKhu6e-K_E",
     authDomain: "cuuho-mientrung.firebaseapp.com",
@@ -200,117 +197,98 @@
     appId: "1:54443732617:web:e86f1bc8aea31e64a96058"
   };
 
-  // imports
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-  import { getFirestore, collection, addDoc, doc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc, getDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+  import { getFirestore, collection, addDoc, doc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc, getDoc, updateDoc, where, limit } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
   import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
   import L from "https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js";
+  import 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster-src.js';
 
-  // initialize
+  // init firebase
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
   const storage = getStorage(app);
 
   // DOM
-  const emailEl = document.getElementById('email');
-  const passwordEl = document.getElementById('password');
-  const formLogin = document.getElementById('form-login');
-  const btnRegister = document.getElementById('btn-register');
   const userBox = document.getElementById('userBox');
   const btnLogout = document.getElementById('btn-logout');
   const btnSOS = document.getElementById('btn-sos');
 
+  const formAuth = document.getElementById('form-auth');
+  const inputEmail = document.getElementById('auth-email');
+  const inputPwd = document.getElementById('auth-password');
+  const btnRegister = document.getElementById('btn-register');
+
   const formPost = document.getElementById('form-post');
-  const titleEl = document.getElementById('title');
-  const descEl = document.getElementById('desc');
-  const severityEl = document.getElementById('severity');
-  const typeEl = document.getElementById('type');
-  const fileEl = document.getElementById('file');
+  const titleEl = document.getElementById('post-title');
+  const descEl = document.getElementById('post-desc');
+  const severityEl = document.getElementById('post-severity');
+  const typeEl = document.getElementById('post-type');
+  const fileEl = document.getElementById('post-file');
   const posDisplay = document.getElementById('posDisplay');
   const btnGetLoc = document.getElementById('btn-getloc');
   const btnClear = document.getElementById('btn-clear');
 
   const postsList = document.getElementById('postsList');
-  const modal = document.getElementById('modal');
-  const modalBody = document.getElementById('modalBody');
-  const modalTitle = document.getElementById('modalTitle');
-  const modalClose = document.getElementById('modal-close');
 
-  const btnLocate = document.getElementById('btn-locate');
+  const btnCenter = document.getElementById('btn-center');
   const btnToggleAreas = document.getElementById('btn-toggle-areas');
   const btnRefresh = document.getElementById('btn-refresh');
 
+  const searchBox = document.getElementById('searchBox');
+  const btnSearch = document.getElementById('btn-search');
+
+  const modal = document.getElementById('modal');
+  const modalClose = document.getElementById('modal-close');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody = document.getElementById('modalBody');
+
   // state
   let currentUser = null;
-  let currentPos = null; // {lat,lng}
-  let selectedPos = null; // for post
-  let areaFirstCorner = null; // for area draw
-  let map, markersLayer, areasLayer;
-  let showAreas = true;
   const ADMIN_EMAIL = 'admin@gmail.com';
+  let map, clusterLayer, areasLayer;
+  let selectedPos = null;
+  let firstCorner = null;
+  let showAreas = true;
 
   // helpers
-  function uid(){ return currentUser ? currentUser.uid : null; }
-  function isAdmin(){ return currentUser && currentUser.email === ADMIN_EMAIL; }
-  function severityToColor(s){
-    if(s==='red') return '#e74c3c';
-    if(s==='yellow') return '#f1c40f';
-    return '#2ecc71';
-  }
-  function severityToLabel(s){
-    if(s==='red') return 'Ngập nặng';
-    if(s==='yellow') return 'Ngập trung bình';
-    return 'Ngập nhẹ';
-  }
+  const severityColor = s => s==='red'? '#e74c3c' : s==='yellow'? '#f1c40f' : '#2ecc71';
+  const severityLabel = s => s==='red'? 'Ngập nặng' : s==='yellow'? 'Ngập trung bình' : 'Ngập nhẹ';
+  const uid = ()=> currentUser ? currentUser.uid : null;
+  const isAdmin = ()=> currentUser && currentUser.email === ADMIN_EMAIL;
 
-  // initialize map
+  // init map
   function initMap(){
-    map = L.map('map').setView([15.5,108], 8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      maxZoom:19,
-      attribution:'© OpenStreetMap'
-    }).addTo(map);
+    map = L.map('map', { zoomControl:true }).setView([15.5,108], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
+    clusterLayer = L.markerClusterGroup();
+    areasLayer = L.layerGroup();
+    map.addLayer(clusterLayer);
+    map.addLayer(areasLayer);
 
-    markersLayer = L.layerGroup().addTo(map);
-    areasLayer = L.layerGroup().addTo(map);
-
-    // click for selecting position or drawing area
     map.on('click', (e)=>{
       if(typeEl.value === 'marker'){
         selectedPos = { lat: e.latlng.lat, lng: e.latlng.lng };
         posDisplay.textContent = `Vị trí: ${selectedPos.lat.toFixed(6)}, ${selectedPos.lng.toFixed(6)}`;
-        // add temp marker
-        markersLayer.eachLayer(l => { if(l.options && l.options._temp) markersLayer.removeLayer(l) });
-        const m = L.marker([selectedPos.lat, selectedPos.lng], {opacity:0.9}).addTo(markersLayer);
-        m.options._temp = true;
+        // temp marker
+        clusterLayer.eachLayer(l => { if(l._temp) clusterLayer.removeLayer(l) });
+        const m = L.marker([selectedPos.lat, selectedPos.lng], {opacity:0.9}).addTo(clusterLayer);
+        m._temp = true;
       } else {
-        // area mode - 2 clicks to create rectangle
-        if(!areaFirstCorner){
-          areaFirstCorner = e.latlng;
-          posDisplay.textContent = `Đã chọn góc 1: ${areaFirstCorner.lat.toFixed(6)}, ${areaFirstCorner.lng.toFixed(6)} — click góc 2`;
+        if(!firstCorner){
+          firstCorner = e.latlng;
+          posDisplay.textContent = `Chọn góc 2...`;
         } else {
-          const corner1 = areaFirstCorner;
-          const corner2 = e.latlng;
-          const bounds = [[corner1.lat, corner1.lng],[corner2.lat, corner2.lng]];
-          // store as geojson polygon coords (rectangle)
-          selectedPos = {
-            area: [
-              [corner1.lat, corner1.lng],
-              [corner1.lat, corner2.lng],
-              [corner2.lat, corner2.lng],
-              [corner2.lat, corner1.lng],
-              [corner1.lat, corner1.lng]
-            ],
-            center: [(corner1.lat+corner2.lat)/2, (corner1.lng+corner2.lng)/2]
-          };
-          posDisplay.textContent = `Vùng đã chọn (rectangle)`;
+          const c1 = firstCorner; const c2 = e.latlng;
+          const area = [[c1.lat,c1.lng],[c1.lat,c2.lng],[c2.lat,c2.lng],[c2.lat,c1.lng],[c1.lat,c1.lng]];
+          selectedPos = { area, center: [(c1.lat+c2.lat)/2, (c1.lng+c2.lng)/2] };
+          posDisplay.textContent = `Vùng đã chọn`;
           // draw temp polygon
-          areasLayer.eachLayer(l => { if(l.options && l.options._temp) areasLayer.removeLayer(l) });
-          const poly = L.polygon(selectedPos.area, {color: severityToColor(severityEl.value), weight:1, opacity:0.7, fillOpacity:0.2}).addTo(areasLayer);
-          poly.options._temp = true;
-          areaFirstCorner = null;
+          areasLayer.eachLayer(l => { if(l._temp) areasLayer.removeLayer(l) });
+          const poly = L.polygon(area, { color: severityColor(severityEl.value), weight:1, fillOpacity:0.15 }).addTo(areasLayer);
+          poly._temp = true;
+          firstCorner = null;
         }
       }
     });
@@ -318,145 +296,299 @@
 
   // geolocation
   async function getGPS(){
-    return new Promise((resolve, reject)=>{
-      if(!navigator.geolocation) return reject(new Error('Không hỗ trợ GPS'));
-      navigator.geolocation.getCurrentPosition((pos)=>{
-        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      }, (err)=>{
-        reject(err);
-      }, { enableHighAccuracy:true, timeout:10000 });
+    return new Promise((res, rej)=>{
+      if(!navigator.geolocation) return rej('Không hỗ trợ GPS');
+      navigator.geolocation.getCurrentPosition(p => res({lat:p.coords.latitude, lng:p.coords.longitude}), err => rej(err), {enableHighAccuracy:true, timeout:12000});
     });
   }
 
-  // firebase auth handlers
-  formLogin.addEventListener('submit', async (e)=>{
+  // upload media
+  async function uploadMedia(file){
+    if(!file) return null;
+    const path = `media/${Date.now()}_${file.name.replace(/\s+/g,'_')}`;
+    const ref = sRef(storage, path);
+    const data = await file.arrayBuffer();
+    await uploadBytes(ref, new Uint8Array(data));
+    const url = await getDownloadURL(ref);
+    return { url, path };
+  }
+
+  // auth
+  formAuth.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const email = emailEl.value.trim();
-    const pwd = passwordEl.value;
+    const email = inputEmail.value.trim(), pwd = inputPwd.value;
     try{
-      const cred = await signInWithEmailAndPassword(auth, email, pwd);
-      // onAuthStateChanged will handle UI
-      alert('Đăng nhập thành công');
+      await signInWithEmailAndPassword(auth, email, pwd);
+      toast('Đăng nhập thành công');
     }catch(err){
       console.error(err);
-      alert('Đăng nhập thất bại: ' + (err.message || err));
+      toast('Đăng nhập thất bại: ' + (err.message||err));
     }
   });
-
   btnRegister.addEventListener('click', async ()=>{
-    const email = emailEl.value.trim();
-    const pwd = passwordEl.value;
-    if(!email || !pwd) return alert('Nhập email + mật khẩu để đăng ký');
+    const email = inputEmail.value.trim(), pwd = inputPwd.value;
+    if(!email || !pwd) return toast('Nhập email + mật khẩu để đăng ký');
     try{
       await createUserWithEmailAndPassword(auth, email, pwd);
-      alert('Đã tạo tài khoản. Kiểm tra email nếu cần xác thực (tuỳ cấu hình Firebase)');
-    }catch(err){
-      console.error(err);
-      alert('Đăng ký thất bại: ' + (err.message || err));
-    }
+      toast('Đã tạo tài khoản. Vui lòng đăng nhập.');
+    }catch(err){ console.error(err); toast('Đăng ký lỗi: '+(err.message||err)); }
   });
+  btnLogout.addEventListener('click', async ()=>{ await signOut(auth); });
 
-  btnLogout.addEventListener('click', async ()=>{
-    await signOut(auth);
-  });
-
-  onAuthStateChanged(auth, (user)=>{
-    currentUser = user;
-    if(user){
-      userBox.innerHTML = `<div style="display:flex;gap:8px;align-items:center"><img src="${user.photoURL||'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.email)}" style="width:28px;height:28px;border-radius:50%"/><div><div>${user.email}</div>${isAdmin()?'<div class="admin-badge">ADMIN</div>':''}</div></div>`;
+  onAuthStateChanged(auth, (u)=>{
+    currentUser = u;
+    if(u){
+      userBox.innerHTML = `<div style="display:flex;gap:8px;align-items:center"><img src="${u.photoURL||'https://ui-avatars.com/api/?name=' + encodeURIComponent(u.email)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/> <div><div style="font-weight:600">${u.email}</div>${isAdmin()?'<div style="font-size:12px;color:#111;background:#fde68a;padding:4px;border-radius:6px;margin-top:4px">ADMIN</div>':''}</div></div>`;
       btnLogout.style.display = 'inline-block';
     } else {
       userBox.textContent = 'Chưa đăng nhập';
       btnLogout.style.display = 'none';
     }
+    // refresh feed on auth change
+    setTimeout(()=> startRealtime(), 400);
   });
 
-  // upload helper
-  async function uploadFile(file){
-    if(!file) return null;
-    const path = `media/${Date.now()}_${file.name.replace(/\s+/g,'_')}`;
-    const ref = sRef(storage, path);
-    const data = await file.arrayBuffer();
-    const snap = await uploadBytes(ref, new Uint8Array(data));
-    const url = await getDownloadURL(ref);
-    return { url, path };
-  }
-
-  // create post
+  // post submit
   formPost.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    if(!currentUser) return alert('Vui lòng đăng nhập trước khi đăng bài.');
-    const title = titleEl.value.trim() || 'Không có tiêu đề';
-    const desc = descEl.value.trim() || '';
-    const severity = severityEl.value;
-    const type = typeEl.value;
-    // require selectedPos
-    if(!selectedPos){
-      return alert('Vui lòng chọn vị trí hoặc vùng trên bản đồ trước khi đăng.');
-    }
+    if(!currentUser) return toast('Đăng nhập để đăng bài.');
+    if(!selectedPos) return toast('Vui lòng chọn vị trí trên bản đồ');
     try{
+      const title = titleEl.value.trim() || 'Không tiêu đề';
+      const desc = descEl.value.trim() || '';
+      const severity = severityEl.value;
+      const type = typeEl.value;
       const f = fileEl.files[0];
       let mediaUrl = null;
-      if(f){
-        const upl = await uploadFile(f);
-        mediaUrl = upl.url;
-      }
-      // doc structure
-      let docData = {
-        title, desc, severity, type,
-        uid: currentUser.uid,
-        author: currentUser.email,
-        createdAt: serverTimestamp()
-      };
-      if(type === 'marker'){
-        docData.lat = selectedPos.lat;
-        docData.lng = selectedPos.lng;
-      } else {
-        docData.area = selectedPos.area; // array of [lat,lng]
-        docData.center = selectedPos.center;
-      }
-      if(mediaUrl) docData.mediaUrl = mediaUrl;
-
-      await addDoc(collection(db, 'posts'), docData);
-      alert('Đăng thành công! Bài sẽ xuất hiện trên bản đồ ngay lập tức.');
+      if(f){ const upl = await uploadMedia(f); mediaUrl = upl.url; }
+      const payload = { title, desc, severity, type, author: currentUser.email, uid: currentUser.uid, createdAt: serverTimestamp() };
+      if(type==='marker'){ payload.lat = selectedPos.lat; payload.lng = selectedPos.lng; }
+      else { payload.area = selectedPos.area; payload.center = selectedPos.center; }
+      if(mediaUrl) payload.mediaUrl = mediaUrl;
+      await addDoc(collection(db, 'posts'), payload);
+      toast('Đăng thành công');
       // clear form
-      titleEl.value = ''; descEl.value = ''; fileEl.value = ''; selectedPos = null; posDisplay.textContent = 'Vị trí: chưa chọn';
-      // remove temp markers/polygons
-      markersLayer.eachLayer(l => { if(l.options && l.options._temp) markersLayer.removeLayer(l) });
-      areasLayer.eachLayer(l => { if(l.options && l.options._temp) areasLayer.removeLayer(l) });
-    }catch(err){
-      console.error(err); alert('Lỗi khi đăng: '+(err.message||err));
-    }
+      titleEl.value=''; descEl.value=''; fileEl.value=''; selectedPos=null; posDisplay.textContent='Vị trí: chưa';
+      clusterLayer.eachLayer(l => { if(l._temp) clusterLayer.removeLayer(l) });
+      areasLayer.eachLayer(l => { if(l._temp) areasLayer.removeLayer(l) });
+    }catch(err){ console.error(err); toast('Lỗi khi đăng: '+(err.message||err)); }
   });
 
   btnClear.addEventListener('click', ()=>{
-    titleEl.value = ''; descEl.value = ''; fileEl.value = ''; selectedPos=null; posDisplay.textContent='Vị trí: chưa chọn';
-    markersLayer.eachLayer(l => { if(l.options && l.options._temp) markersLayer.removeLayer(l) });
-    areasLayer.eachLayer(l => { if(l.options && l.options._temp) areasLayer.removeLayer(l) });
-    areaFirstCorner = null;
+    titleEl.value=''; descEl.value=''; fileEl.value=''; selectedPos=null; posDisplay.textContent='Vị trí: chưa';
+    clusterLayer.eachLayer(l => { if(l._temp) clusterLayer.removeLayer(l) });
+    areasLayer.eachLayer(l => { if(l._temp) areasLayer.removeLayer(l) });
+    firstCorner = null;
   });
 
   // SOS
   btnSOS.addEventListener('click', async ()=>{
-    if(!currentUser) return alert('Vui lòng đăng nhập để gửi SOS');
-    const ok = confirm('Gửi SOS sẽ tạo cảnh báo "Ngập nặng" với vị trí hiện tại. Xác nhận?');
-    if(!ok) return;
+    if(!currentUser) return toast('Đăng nhập để gửi SOS');
+    if(!confirm('Gửi SOS sẽ tạo báo đỏ với vị trí hiện tại. Tiếp tục?')) return;
     try{
-      const pos = await getGPS();
-      // create post
-      await addDoc(collection(db, 'posts'), {
-        title: 'SOS — Cần cứu trợ ngay',
-        desc: 'Người dùng gửi SOS. Vui lòng xử lý nhanh.',
-        severity: 'red',
-        type: 'marker',
-        lat: pos.lat,
-        lng: pos.lng,
-        uid: currentUser.uid,
-        author: currentUser.email,
-        createdAt: serverTimestamp(),
-        sos: true
+      const p = await getGPS();
+      await addDoc(collection(db,'posts'), { title:'SOS — CẦN CỨU TRỢ', desc:'Người dùng gửi SOS', severity:'red', type:'marker', lat:p.lat, lng:p.lng, uid:currentUser.uid, author:currentUser.email, createdAt: serverTimestamp(), sos:true});
+      await addDoc(collection(db,'sos'), { uid:currentUser.uid, author:currentUser.email, lat:p.lat, lng:p.lng, createdAt: serverTimestamp() });
+      toast('SOS gửi thành công');
+    }catch(err){ console.error(err); toast('Không lấy được vị trí: '+(err.message||err)); }
+  });
+
+  // realtime listener
+  function startRealtime(){
+    const q = query(collection(db,'posts'), orderBy('createdAt','desc'));
+    onSnapshot(q, (snap)=>{
+      // clear
+      clusterLayer.clearLayers();
+      areasLayer.clearLayers();
+      postsList.innerHTML = '';
+      snap.forEach(docSnap => {
+        const id = docSnap.id; const d = docSnap.data();
+        addToMap(id,d);
+        addToFeed(id,d);
       });
-      // also add to sos collection for admins
-      await addDoc(collection(db,'sos'), { uid: currentUser.uid, author: currentUser.email, lat: pos.lat, lng: pos.lng, createdAt: serverTimestamp() });
-      alert('SOS đã gửi. Hệ thống sẽ thông báo cho quản trị.');
-    }catch(err){
+    }, err => console.error(err));
+  }
+
+  function addToMap(id,d){
+    const color = severityColor(d.severity || 'green');
+    if(d.type==='marker' && d.lat && d.lng){
+      const m = L.circleMarker([d.lat,d.lng], { radius:8, color, fillColor:color, fillOpacity:0.8 });
+      m.bindPopup(`<strong>${escapeHtml(d.title)}</strong><br/>${escapeHtml(d.desc||'')}<br/><small>${d.author||'Ẩn danh'}</small>`);
+      m._id = id;
+      clusterLayer.addLayer(m);
+    } else if(d.type==='area' && d.area){
+      const poly = L.polygon(d.area, { color, weight:1, fillOpacity:0.14 });
+      poly._id = id; poly.bindPopup(`<strong>${escapeHtml(d.title)}</strong>`);
+      areasLayer.addLayer(poly);
+    }
+  }
+
+  function addToFeed(id,d){
+    const el = document.createElement('div'); el.className = 'post';
+    const media = document.createElement('div'); media.className = 'media';
+    if(d.mediaUrl){
+      if(d.mediaUrl.match(/\.(mp4|webm|ogg)(\?.*)?$/i) || d.mediaUrl.includes('video')){
+        const v = document.createElement('video'); v.src=d.mediaUrl; v.controls=true; v.style.maxWidth='100%'; v.style.maxHeight='100%';
+        media.appendChild(v);
+      } else {
+        const img = document.createElement('img'); img.src=d.mediaUrl; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+        media.appendChild(img);
+      }
+    } else {
+      media.textContent='—';
+    }
+    const meta = document.createElement('div'); meta.className='meta';
+    const h = document.createElement('h4'); h.textContent = d.title || '(Không tiêu đề)';
+    const p = document.createElement('p'); p.textContent = d.desc || '';
+    const info = document.createElement('div'); info.className='small'; info.textContent = `${d.author||'Ẩn danh'} • ${d.createdAt ? formatTS(d.createdAt): ''}`;
+    const tags = document.createElement('div'); tags.className='tags';
+    const tag = document.createElement('div'); tag.className = 'tag ' + (d.severity||'green'); tag.textContent = severityLabel(d.severity||'green');
+    if(d.severity==='green') tag.className='tag green';
+    if(d.severity==='yellow') tag.className='tag yellow';
+    if(d.severity==='red') tag.className='tag red';
+    tags.appendChild(tag);
+    if(d.sos){ const s = document.createElement('div'); s.className='tag red'; s.textContent='SOS'; tags.appendChild(s); }
+
+    const footer = document.createElement('div'); footer.className='footer';
+    const btnView = document.createElement('button'); btnView.className='icon'; btnView.textContent='Xem'; btnView.onclick = ()=> openModal(id,d);
+    const btnGoto = document.createElement('button'); btnGoto.className='icon'; btnGoto.textContent='Tới vị trí'; btnGoto.onclick = ()=>{
+      if(d.type==='marker' && d.lat && d.lng) map.setView([d.lat,d.lng],16);
+      else if(d.type==='area' && d.area) map.fitBounds(d.area);
+    };
+    const btnLike = document.createElement('button'); btnLike.className='icon'; btnLike.textContent='Like'; btnLike.onclick = ()=> toggleLike(id);
+    footer.appendChild(btnView); footer.appendChild(btnGoto); footer.appendChild(btnLike);
+
+    if(isAdmin()){
+      const btnDel = document.createElement('button'); btnDel.className='icon'; btnDel.textContent='Xóa'; btnDel.onclick = async ()=>{
+        if(!confirm('Xác nhận xóa bài này?')) return;
+        try{ await deleteDoc(doc(db,'posts',id)); toast('Đã xóa'); }catch(e){ toast('Xóa lỗi'); console.error(e); }
+      };
+      footer.appendChild(btnDel);
+    }
+
+    meta.appendChild(h); meta.appendChild(p); meta.appendChild(info); meta.appendChild(tags); meta.appendChild(footer);
+    el.appendChild(media); el.appendChild(meta);
+    postsList.appendChild(el);
+  }
+
+  // open modal (details + comments)
+  async function openModal(id,d){
+    modalTitle.textContent = d.title || 'Chi tiết';
+    modalBody.innerHTML = '';
+    const cont = document.createElement('div');
+    if(d.mediaUrl){
+      if(d.mediaUrl.match(/\.(mp4|webm|ogg)(\?.*)?$/i) || d.mediaUrl.includes('video')){
+        const v = document.createElement('video'); v.src=d.mediaUrl; v.controls=true; v.style.maxWidth='100%';
+        cont.appendChild(v);
+      } else {
+        const img = document.createElement('img'); img.src=d.mediaUrl; img.style.maxWidth='100%';
+        cont.appendChild(img);
+      }
+    }
+    const desc = document.createElement('div'); desc.style.marginTop='8px'; desc.textContent = d.desc || '';
+    cont.appendChild(desc);
+
+    const loc = document.createElement('div'); loc.className='small'; loc.style.marginTop='8px';
+    if(d.type==='marker') loc.innerHTML = `<b>Vị trí:</b> ${d.lat?.toFixed(6)}, ${d.lng?.toFixed(6)}`;
+    else loc.innerHTML = `<b>Vùng khoanh:</b> rectangle`;
+    cont.appendChild(loc);
+
+    // comments
+    const comWrap = document.createElement('div'); comWrap.style.marginTop='12px';
+    comWrap.innerHTML = '<strong>Bình luận</strong>';
+    const comList = document.createElement('div'); comList.style.marginTop='8px';
+    comWrap.appendChild(comList);
+
+    const form = document.createElement('form'); form.style.display='flex'; form.style.gap='8px'; form.style.marginTop='8px';
+    const inp = document.createElement('input'); inp.placeholder='Viết bình luận...'; inp.style.flex='1';
+    const sub = document.createElement('button'); sub.className='btn'; sub.textContent='Gửi';
+    form.appendChild(inp); form.appendChild(sub);
+    comWrap.appendChild(form);
+
+    modalBody.appendChild(cont); modalBody.appendChild(comWrap);
+    modal.style.display = 'flex';
+
+    // listener comments
+    const comQuery = query(collection(db, `posts/${id}/comments`), orderBy('createdAt','asc'));
+    const unsub = onSnapshot(comQuery, snap => {
+      comList.innerHTML = '';
+      snap.forEach(s => {
+        const cd = s.data();
+        const ce = document.createElement('div'); ce.className='post'; ce.style.marginBottom='6px'; ce.innerHTML = `<div style="margin-right:8px"><img src="${cd.avatar||'https://ui-avatars.com/api/?name=' + encodeURIComponent(cd.author)}" style="width:36px;height:36px;border-radius:50%"/></div><div><b>${cd.author||'Ẩn danh'}</b><div class="small">${formatTS(cd.createdAt)}</div><div style="margin-top:6px">${escapeHtml(cd.text)}</div></div>`;
+        comList.appendChild(ce);
+      });
+    });
+
+    form.addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      if(!currentUser) return toast('Đăng nhập để bình luận');
+      if(!inp.value.trim()) return;
+      await addDoc(collection(db, `posts/${id}/comments`), { text: inp.value.trim(), author: currentUser.email, uid: currentUser.uid, avatar: currentUser.photoURL||null, createdAt: serverTimestamp() });
+      inp.value = '';
+    });
+
+    modalClose.onclick = ()=>{ modal.style.display='none'; unsub(); };
+    modal.onclick = (e)=> { if(e.target===modal) { modal.style.display='none'; unsub(); } };
+  }
+
+  // like toggle simple
+  async function toggleLike(id){
+    if(!currentUser) return toast('Đăng nhập để like');
+    const docRef = doc(db,'posts',id);
+    const snap = await getDoc(docRef);
+    if(!snap.exists()) return;
+    const d = snap.data(); const likes = d.likes || [];
+    if(likes.includes(currentUser.uid)){
+      const newLikes = likes.filter(x=>x!==currentUser.uid); await updateDoc(docRef, { likes: newLikes });
+    } else {
+      likes.push(currentUser.uid); await updateDoc(docRef, { likes });
+    }
+  }
+
+  // search
+  btnSearch.addEventListener('click', ()=> {
+    const q = searchBox.value.trim().toLowerCase();
+    if(!q) return toast('Nhập từ khoá để tìm');
+    // simple: highlight first post title contains q and center map if has coords
+    // Query firestore client-side: get limited 10 and center first match
+    (async ()=>{
+      const coll = collection(db,'posts');
+      const snap = await getDocs(query(coll, orderBy('createdAt','desc'), limit(200)));
+      let found = null;
+      snap.forEach(s => { const d = s.data(); if(!found && (d.title||'').toLowerCase().includes(q)) found = { id: s.id, data: d }; });
+      if(found){
+        const d = found.data;
+        if(d.type==='marker' && d.lat && d.lng) map.setView([d.lat,d.lng],16);
+        else if(d.type==='area' && d.center) map.setView(d.center,13);
+        toast('Tìm thấy: ' + (d.title||''));
+      } else toast('Không tìm thấy');
+    })();
+  });
+
+  // helpers small
+  function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+  function formatTS(ts){ try{ if(!ts) return ''; if(ts.seconds) ts = new Date(ts.seconds*1000); else if(ts.toDate) ts = ts.toDate(); else ts = new Date(ts); return ts.toLocaleString(); }catch(e){ return ''; } }
+  function toast(msg, t=2500){ const el = document.createElement('div'); el.textContent = msg; el.style.position='fixed'; el.style.right='18px'; el.style.bottom='18px'; el.style.background='rgba(0,0,0,0.8)'; el.style.color='#fff'; el.style.padding='8px 12px'; el.style.borderRadius='8px'; el.style.zIndex=99999; document.body.appendChild(el); setTimeout(()=> el.remove(), t); }
+
+  // bootstrap
+  (function boot(){
+    initMap();
+    startRealtime();
+    // attempt to center to user's current location
+    getGPS().then(p=> map.setView([p.lat,p.lng],13)).catch(()=>{});
+  })();
+
+  // map controls
+  document.getElementById('btn-getloc').onclick = async ()=> {
+    try{ const p = await getGPS(); selectedPos = { lat:p.lat, lng:p.lng }; posDisplay.textContent = `Vị trí: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`; clusterLayer.eachLayer(l=> { if(l._temp) clusterLayer.removeLayer(l) }); L.marker([p.lat,p.lng]).addTo(clusterLayer)._temp=true; }catch(e){ toast('Không lấy được vị trí'); }
+  };
+  btnCenter.onclick = async ()=> { try{ const p = await getGPS(); map.setView([p.lat,p.lng],14); }catch(e){ toast('Không lấy được vị trí'); } };
+  btnToggleAreas.onclick = ()=> { showAreas = !showAreas; if(showAreas) map.addLayer(areasLayer); else map.removeLayer(areasLayer); };
+  btnRefresh.onclick = ()=> startRealtime();
+
+  // small polyfills imports used in search
+  import { getDocs } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+  </script>
+</body>
+</html>
