@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>🆘 CỨU HỘ MIỀN TRUNG</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    :root{
+      --accent:#e33;
+      --bg:#f5f7fb;
+      --card:#fff;
+      --muted:#666;
+      --success:#28a745;
+      --warning:#ffbf00;
+      --danger:#d32f2f;
+      --green:#2ecc71;
+      --yellow:#f1c40f;
+      --red:#e74c3c;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);}
+    header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:linear-gradient(90deg,#0aa,#077);color:#fff}
+    header h1{font-size:18px;margin:0;display:flex;gap:10px;align-items:center}
+    header .controls{display:flex;gap:8px;align-items:center}
+    button, input[type=button], input[type=submit]{cursor:pointer}
+    .container{display:grid;grid-template-columns:350px 1fr;gap:12px;padding:12px;height:calc(100% - 64px);}
+    /* left column */
+    .left{display:flex;flex-direction:column;gap:12px}
+    .card{background:var(--card);border-radius:10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:auto}
+    .small{font-size:13px;color:var(--muted)}
+    .auth form{display:flex;flex-direction:column;gap:8px}
+    .auth input, .auth select, .auth textarea{padding:8px;border-radius:6px;border:1px solid #ddd;font-size:14px}
+    .btn{background:var(--accent);color:#fff;padding:8px 10px;border-radius:8px;border:0}
+    .btn--ghost{background:transparent;border:1px solid #ddd;color:#222}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .map-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between}
+    /* right column (map + feed) */
+    .right{display:flex;flex-direction:column;gap:12px;height:100%}
+    #map{height:56vh;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
+    .feed{overflow:auto;padding:8px;height:calc(44vh - 40px)}
+    .post{display:flex;gap:10px;padding:10px;border-radius:8px;border:1px solid #eee;margin-bottom:10px;background:#fff}
+    .post .media{width:110px;height:80px;border-radius:6px;background:#f0f0f0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .post .meta{flex:1}
+    .post h4{margin:0 0 6px 0}
+    .tags{display:flex;gap:6px;margin-top:6px}
+    .tag{padding:4px 6px;border-radius:6px;font-size:12px}
+    .tag.green{background:rgba(46,204,113,0.12);color:var(--green)}
+    .tag.yellow{background:rgba(241,196,15,0.12);color:var(--yellow)}
+    .tag.red{background:rgba(231,76,60,0.12);color:var(--red)}
+    .post .footer{display:flex;gap:6px;align-items:center;margin-top:8px}
+    .icon-btn{border:0;background:transparent;cursor:pointer;padding:6px;border-radius:6px}
+    .modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:999}
+    .modal .dialog{width:95%;max-width:760px;background:#fff;padding:12px;border-radius:8px;max-height:90vh;overflow:auto}
+    .comment{border-top:1px dashed #eee;padding:8px 0;display:flex;gap:8px}
+    .meta small{color:#999}
+    .sos{background:linear-gradient(90deg,#ff6b6b,#ff4757);color:#fff;padding:8px;border-radius:8px}
+    .admin-badge{background:#111;color:#fff;padding:4px 6px;border-radius:6px;font-size:12px}
+    /* responsive */
+    @media (max-width:900px){
+      .container{grid-template-columns:1fr;grid-auto-rows:auto;height:auto}
+      #map{height:50vh}
+      .feed{height:40vh}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🆘 CỨU HỘ MIỀN TRUNG</h1>
+    <div class="controls">
+      <div id="userBox" class="small">Chưa đăng nhập</div>
+      <button id="btn-sos" class="sos">GỬI SOS</button>
+      <button id="btn-logout" class="btn btn--ghost" style="display:none">Đăng xuất</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="left">
+      <div class="card auth" id="authCard">
+        <div id="authForms">
+          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <strong>Đăng ký / Đăng nhập</strong>
+            <small class="small">Dùng email</small>
+          </div>
+          <form id="form-login">
+            <input id="email" type="email" placeholder="Email" required />
+            <input id="password" type="password" placeholder="Mật khẩu" required />
+            <div style="display:flex;gap:8px">
+              <button type="submit" class="btn">Đăng nhập</button>
+              <button type="button" id="btn-register" class="btn btn--ghost">Đăng ký</button>
+            </div>
+            <div style="margin-top:8px" class="small">Admin mặc định: <b>admin@gmail.com</b></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card" id="postCard">
+        <strong>Đăng bài báo ngập</strong>
+        <div class="small">Chọn điểm trên bản đồ hoặc dùng vị trí của bạn</div>
+        <form id="form-post" style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          <input id="title" placeholder="Tiêu đề (ví dụ: Ngập ở cầu X)" required />
+          <textarea id="desc" placeholder="Mô tả chi tiết... (có hướng an toàn nếu biết)" rows="3"></textarea>
+          <div style="display:flex;gap:8px">
+            <select id="severity">
+              <option value="green">Ngập nhẹ</option>
+              <option value="yellow">Ngập trung bình</option>
+              <option value="red">Ngập nặng</option>
+            </select>
+            <select id="type">
+              <option value="marker">Đánh dấu điểm</option>
+              <option value="area">Khoanh vùng (2 lần click)</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="file" type="file" accept="image/*,video/*" />
+            <button type="button" id="btn-getloc" class="btn btn--ghost">Lấy vị trí</button>
+            <div id="posDisplay" class="small">Vị trí: chưa chọn</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" type="submit">Đăng bài</button>
+            <button type="button" id="btn-clear" class="btn btn--ghost">Xóa</button>
+          </div>
+          <div class="small">Ghi chú: Với <b>area</b>, click 2 lần trên bản đồ để tạo vùng. Vùng sẽ được tô màu theo mức độ.</div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Điều khiển bản đồ</strong>
+          <small class="small">Toggle</small>
+        </div>
+        <div style="margin-top:8px" class="map-toolbar">
+          <div class="actions">
+            <button id="btn-locate" class="btn btn--ghost">Từ GPS</button>
+            <button id="btn-toggle-areas" class="btn btn--ghost">Ẩn/Hiện vùng</button>
+            <button id="btn-refresh" class="btn btn--ghost">Tải lại</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card small">
+        <strong>Hướng dẫn nhanh</strong>
+        <ul>
+          <li>Đăng ký/Đăng nhập bằng email.</li>
+          <li>Chọn vị trí bằng click trên bản đồ hoặc nút "Lấy vị trí".</li>
+          <li>Đăng ảnh/video kèm mô tả. Mức độ: xanh/vàng/đỏ.</li>
+          <li>Admin (<b>admin@gmail.com</b>) có quyền xóa bài.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="right">
+      <div id="map" class="card"></div>
+      <div class="card feed" id="feed">
+        <strong>Danh sách cảnh báo</strong>
+        <div id="postsList" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal chi tiết bài -->
+  <div id="modal" class="modal" style="display:none">
+    <div class="dialog">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong id="modalTitle">Chi tiết</strong>
+        <div>
+          <button id="modal-close" class="btn btn--ghost">Đóng</button>
+        </div>
+      </div>
+      <div id="modalBody" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script type="module">
+  /*************************************************************************
+   * Cứu hộ miền trung - Single-file frontend with Firebase + Leaflet
+   * Features:
+   *  - Firebase Auth (email/password)
+   *  - Firestore posts: { title, desc, lat, lng, severity, type, mediaUrl, uid, author, createdAt }
+   *  - Storage for media
+   *  - Real-time updates (onSnapshot)
+   *  - Comments as subcollection "comments"
+   *  - Likes simple toggle stored in likes: [uid]
+   *  - Admin (admin@gmail.com) can delete posts
+   *  - SOS creates post severity=red + separate 'sos' collection for admin monitoring
+   *  - Map markers + polygon (rectangle) drawing via two clicks
+   *
+   * Notes:
+   *  - Replace firebaseConfig below with your config (you already provided)
+   *  - For production: secure Firestore rules to allow only auth writes and admin deletes, etc.
+   *************************************************************************/
+
+  // Firebase config (use what user provided)
+  const firebaseConfig = {
+    apiKey: "AIzaSyD6DNuThRLY6NsSqlhX71j5zHKhu6e-K_E",
+    authDomain: "cuuho-mientrung.firebaseapp.com",
+    projectId: "cuuho-mientrung",
+    storageBucket: "cuuho-mientrung.firebasestorage.app",
+    messagingSenderId: "54443732617",
+    appId: "1:54443732617:web:e86f1bc8aea31e64a96058"
+  };
+
+  // imports
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+  import { getFirestore, collection, addDoc, doc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc, getDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+  import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
+  import L from "https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js";
+
+  // initialize
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  // DOM
+  const emailEl = document.getElementById('email');
+  const passwordEl = document.getElementById('password');
+  const formLogin = document.getElementById('form-login');
+  const btnRegister = document.getElementById('btn-register');
+  const userBox = document.getElementById('userBox');
+  const btnLogout = document.getElementById('btn-logout');
+  const btnSOS = document.getElementById('btn-sos');
+
+  const formPost = document.getElementById('form-post');
+  const titleEl = document.getElementById('title');
+  const descEl = document.getElementById('desc');
+  const severityEl = document.getElementById('severity');
+  const typeEl = document.getElementById('type');
+  const fileEl = document.getElementById('file');
+  const posDisplay = document.getElementById('posDisplay');
+  const btnGetLoc = document.getElementById('btn-getloc');
+  const btnClear = document.getElementById('btn-clear');
+
+  const postsList = document.getElementById('postsList');
+  const modal = document.getElementById('modal');
+  const modalBody = document.getElementById('modalBody');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalClose = document.getElementById('modal-close');
+
+  const btnLocate = document.getElementById('btn-locate');
+  const btnToggleAreas = document.getElementById('btn-toggle-areas');
+  const btnRefresh = document.getElementById('btn-refresh');
+
+  // state
+  let currentUser = null;
+  let currentPos = null; // {lat,lng}
+  let selectedPos = null; // for post
+  let areaFirstCorner = null; // for area draw
+  let map, markersLayer, areasLayer;
+  let showAreas = true;
+  const ADMIN_EMAIL = 'admin@gmail.com';
+
+  // helpers
+  function uid(){ return currentUser ? currentUser.uid : null; }
+  function isAdmin(){ return currentUser && currentUser.email === ADMIN_EMAIL; }
+  function severityToColor(s){
+    if(s==='red') return '#e74c3c';
+    if(s==='yellow') return '#f1c40f';
+    return '#2ecc71';
+  }
+  function severityToLabel(s){
+    if(s==='red') return 'Ngập nặng';
+    if(s==='yellow') return 'Ngập trung bình';
+    return 'Ngập nhẹ';
+  }
+
+  // initialize map
+  function initMap(){
+    map = L.map('map').setView([15.5,108], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,
+      attribution:'© OpenStreetMap'
+    }).addTo(map);
+
+    markersLayer = L.layerGroup().addTo(map);
+    areasLayer = L.layerGroup().addTo(map);
+
+    // click for selecting position or drawing area
+    map.on('click', (e)=>{
+      if(typeEl.value === 'marker'){
+        selectedPos = { lat: e.latlng.lat, lng: e.latlng.lng };
+        posDisplay.textContent = `Vị trí: ${selectedPos.lat.toFixed(6)}, ${selectedPos.lng.toFixed(6)}`;
+        // add temp marker
+        markersLayer.eachLayer(l => { if(l.options && l.options._temp) markersLayer.removeLayer(l) });
+        const m = L.marker([selectedPos.lat, selectedPos.lng], {opacity:0.9}).addTo(markersLayer);
+        m.options._temp = true;
+      } else {
+        // area mode - 2 clicks to create rectangle
+        if(!areaFirstCorner){
+          areaFirstCorner = e.latlng;
+          posDisplay.textContent = `Đã chọn góc 1: ${areaFirstCorner.lat.toFixed(6)}, ${areaFirstCorner.lng.toFixed(6)} — click góc 2`;
+        } else {
+          const corner1 = areaFirstCorner;
+          const corner2 = e.latlng;
+          const bounds = [[corner1.lat, corner1.lng],[corner2.lat, corner2.lng]];
+          // store as geojson polygon coords (rectangle)
+          selectedPos = {
+            area: [
+              [corner1.lat, corner1.lng],
+              [corner1.lat, corner2.lng],
+              [corner2.lat, corner2.lng],
+              [corner2.lat, corner1.lng],
+              [corner1.lat, corner1.lng]
+            ],
+            center: [(corner1.lat+corner2.lat)/2, (corner1.lng+corner2.lng)/2]
+          };
+          posDisplay.textContent = `Vùng đã chọn (rectangle)`;
+          // draw temp polygon
+          areasLayer.eachLayer(l => { if(l.options && l.options._temp) areasLayer.removeLayer(l) });
+          const poly = L.polygon(selectedPos.area, {color: severityToColor(severityEl.value), weight:1, opacity:0.7, fillOpacity:0.2}).addTo(areasLayer);
+          poly.options._temp = true;
+          areaFirstCorner = null;
+        }
+      }
+    });
+  }
+
+  // geolocation
+  async function getGPS(){
+    return new Promise((resolve, reject)=>{
+      if(!navigator.geolocation) return reject(new Error('Không hỗ trợ GPS'));
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      }, (err)=>{
+        reject(err);
+      }, { enableHighAccuracy:true, timeout:10000 });
+    });
+  }
+
+  // firebase auth handlers
+  formLogin.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const email = emailEl.value.trim();
+    const pwd = passwordEl.value;
+    try{
+      const cred = await signInWithEmailAndPassword(auth, email, pwd);
+      // onAuthStateChanged will handle UI
+      alert('Đăng nhập thành công');
+    }catch(err){
+      console.error(err);
+      alert('Đăng nhập thất bại: ' + (err.message || err));
+    }
+  });
+
+  btnRegister.addEventListener('click', async ()=>{
+    const email = emailEl.value.trim();
+    const pwd = passwordEl.value;
+    if(!email || !pwd) return alert('Nhập email + mật khẩu để đăng ký');
+    try{
+      await createUserWithEmailAndPassword(auth, email, pwd);
+      alert('Đã tạo tài khoản. Kiểm tra email nếu cần xác thực (tuỳ cấu hình Firebase)');
+    }catch(err){
+      console.error(err);
+      alert('Đăng ký thất bại: ' + (err.message || err));
+    }
+  });
+
+  btnLogout.addEventListener('click', async ()=>{
+    await signOut(auth);
+  });
+
+  onAuthStateChanged(auth, (user)=>{
+    currentUser = user;
+    if(user){
+      userBox.innerHTML = `<div style="display:flex;gap:8px;align-items:center"><img src="${user.photoURL||'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.email)}" style="width:28px;height:28px;border-radius:50%"/><div><div>${user.email}</div>${isAdmin()?'<div class="admin-badge">ADMIN</div>':''}</div></div>`;
+      btnLogout.style.display = 'inline-block';
+    } else {
+      userBox.textContent = 'Chưa đăng nhập';
+      btnLogout.style.display = 'none';
+    }
+  });
+
+  // upload helper
+  async function uploadFile(file){
+    if(!file) return null;
+    const path = `media/${Date.now()}_${file.name.replace(/\s+/g,'_')}`;
+    const ref = sRef(storage, path);
+    const data = await file.arrayBuffer();
+    const snap = await uploadBytes(ref, new Uint8Array(data));
+    const url = await getDownloadURL(ref);
+    return { url, path };
+  }
+
+  // create post
+  formPost.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if(!currentUser) return alert('Vui lòng đăng nhập trước khi đăng bài.');
+    const title = titleEl.value.trim() || 'Không có tiêu đề';
+    const desc = descEl.value.trim() || '';
+    const severity = severityEl.value;
+    const type = typeEl.value;
+    // require selectedPos
+    if(!selectedPos){
+      return alert('Vui lòng chọn vị trí hoặc vùng trên bản đồ trước khi đăng.');
+    }
+    try{
+      const f = fileEl.files[0];
+      let mediaUrl = null;
+      if(f){
+        const upl = await uploadFile(f);
+        mediaUrl = upl.url;
+      }
+      // doc structure
+      let docData = {
+        title, desc, severity, type,
+        uid: currentUser.uid,
+        author: currentUser.email,
+        createdAt: serverTimestamp()
+      };
+      if(type === 'marker'){
+        docData.lat = selectedPos.lat;
+        docData.lng = selectedPos.lng;
+      } else {
+        docData.area = selectedPos.area; // array of [lat,lng]
+        docData.center = selectedPos.center;
+      }
+      if(mediaUrl) docData.mediaUrl = mediaUrl;
+
+      await addDoc(collection(db, 'posts'), docData);
+      alert('Đăng thành công! Bài sẽ xuất hiện trên bản đồ ngay lập tức.');
+      // clear form
+      titleEl.value = ''; descEl.value = ''; fileEl.value = ''; selectedPos = null; posDisplay.textContent = 'Vị trí: chưa chọn';
+      // remove temp markers/polygons
+      markersLayer.eachLayer(l => { if(l.options && l.options._temp) markersLayer.removeLayer(l) });
+      areasLayer.eachLayer(l => { if(l.options && l.options._temp) areasLayer.removeLayer(l) });
+    }catch(err){
+      console.error(err); alert('Lỗi khi đăng: '+(err.message||err));
+    }
+  });
+
+  btnClear.addEventListener('click', ()=>{
+    titleEl.value = ''; descEl.value = ''; fileEl.value = ''; selectedPos=null; posDisplay.textContent='Vị trí: chưa chọn';
+    markersLayer.eachLayer(l => { if(l.options && l.options._temp) markersLayer.removeLayer(l) });
+    areasLayer.eachLayer(l => { if(l.options && l.options._temp) areasLayer.removeLayer(l) });
+    areaFirstCorner = null;
+  });
+
+  // SOS
+  btnSOS.addEventListener('click', async ()=>{
+    if(!currentUser) return alert('Vui lòng đăng nhập để gửi SOS');
+    const ok = confirm('Gửi SOS sẽ tạo cảnh báo "Ngập nặng" với vị trí hiện tại. Xác nhận?');
+    if(!ok) return;
+    try{
+      const pos = await getGPS();
+      // create post
+      await addDoc(collection(db, 'posts'), {
+        title: 'SOS — Cần cứu trợ ngay',
+        desc: 'Người dùng gửi SOS. Vui lòng xử lý nhanh.',
+        severity: 'red',
+        type: 'marker',
+        lat: pos.lat,
+        lng: pos.lng,
+        uid: currentUser.uid,
+        author: currentUser.email,
+        createdAt: serverTimestamp(),
+        sos: true
+      });
+      // also add to sos collection for admins
+      await addDoc(collection(db,'sos'), { uid: currentUser.uid, author: currentUser.email, lat: pos.lat, lng: pos.lng, createdAt: serverTimestamp() });
+      alert('SOS đã gửi. Hệ thống sẽ thông báo cho quản trị.');
+    }catch(err){
